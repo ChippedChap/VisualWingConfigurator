@@ -9,7 +9,6 @@ namespace VisualWingConfigurator
     class WingWindow : MonoBehaviour
     {
         private Part currentPart;
-        private Part lastPart;
         private PopupDialog window;
 
         WingStats main = new WingStats();
@@ -57,7 +56,6 @@ namespace VisualWingConfigurator
             }
             if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
             {
-                lastPart = currentPart;
                 currentPart = Mouse.HoveredPart;
             }
         }
@@ -92,7 +90,7 @@ namespace VisualWingConfigurator
             // Change increment amount
             dialogs.Add(SetFloatDialog(labelWidth, "Increment Amount: ", () => { return Format(deltaSize); },
                 (string input) => { return ProcessTextToFloat(input, ref deltaSize); },
-                10, (float change) => { deltaSize *= (change > 0) ? change : -1/change; }));
+                () => { return 10f; }, (float change) => { deltaSize *= (change > 0) ? change : -1/change; }));
 
             dialogs.Add(new DialogGUISpace(5f));
 
@@ -144,29 +142,29 @@ namespace VisualWingConfigurator
             // Vertical and root settings
             settings.AddChild(SetFloatDialog(labelWidth, "Vertical Offset: ", () => { return Format(main.ZOffset); },
                 (string input) => { return ProcessTextToFloat(input, main.ZOffset, (float s) => { main.ZOffset = s; }); },
-                deltaSize, (float change) => { main.ZOffset += change; }));
+                () => { return deltaSize; }, (float change) => { main.ZOffset += change; }));
             settings.AddChild(SetFloatDialog(labelWidth, "Length of Root Chord: ", () => { return Format(main.rootChordLength); },
                 (string input) => { return ProcessTextToFloat(input, ref main.rootChordLength); },
-                deltaSize, (float change) => { main.rootChordLength += change; }));
+                () => { return deltaSize; }, (float change) => { main.rootChordLength += change; }));
             settings.AddChild(SetFloatDialog(labelWidth, "Offset of Root Midpoint - X (Right+)", () => { return Format(main.rootMidChordOffset.x); },
                 (string input) => { return ProcessTextToFloat(input, ref main.rootMidChordOffset.x); },
-                deltaSize, (float change) => { main.rootMidChordOffset.x += change; }));
+                () => { return deltaSize; }, (float change) => { main.rootMidChordOffset.x += change; }));
             settings.AddChild(SetFloatDialog(labelWidth, "Offset of Root Midpoint - Y (Forward+)", () => { return Format(main.rootMidChordOffset.y); },
                 (string input) => { return ProcessTextToFloat(input, ref main.rootMidChordOffset.y); },
-                deltaSize, (float change) => { main.rootMidChordOffset.y += change; }));
+                () => { return deltaSize; }, (float change) => { main.rootMidChordOffset.y += change; }));
 
             settings.AddChild(new DialogGUISpace(5f));
 
             // Tip settings
             settings.AddChild(SetFloatDialog(labelWidth, "Length of Tip Chord: ", () => { return Format(main.tipChordLength); },
                 (string input) => { return ProcessTextToFloat(input, ref main.tipChordLength); },
-                deltaSize, (float change) => { main.tipChordLength += change; }));
+                () => { return deltaSize; }, (float change) => { main.tipChordLength += change; }));
             settings.AddChild(SetFloatDialog(labelWidth, "Offset of Tip Midpoint - X (Right+)", () => { return Format(main.tipMidChordOffset.x); },
                 (string input) => { return ProcessTextToFloat(input, ref main.tipMidChordOffset.x); },
-                deltaSize, (float change) => { main.tipMidChordOffset.x += change; }));
+                () => { return deltaSize; }, (float change) => { main.tipMidChordOffset.x += change; }));
             settings.AddChild(SetFloatDialog(labelWidth, "Offset of Tip Midpoint - Y (Forward+)", () => { return Format(main.tipMidChordOffset.y); },
                 (string input) => { return ProcessTextToFloat(input, ref main.tipMidChordOffset.y); },
-                deltaSize, (float change) => { main.tipMidChordOffset.y += change; }));
+                () => { return deltaSize; }, (float change) => { main.tipMidChordOffset.y += change; }));
 
             return settings;
         }
@@ -184,14 +182,14 @@ namespace VisualWingConfigurator
             DrawTools.DrawTransform(draw.transform, 0.25f);
         }
 
-        private DialogGUIBase SetFloatDialog(float labelWidth, string title, Func<string> currentValue, 
-            Func<string, string> processor, float incAmount, Callback<float> increment)
+        private DialogGUIBase SetFloatDialog(float labelWidth, string title, Func<string> currentValue,
+            Func<string, string> processor, Func<float> incSize, Callback<float> increment)
         {
             var setDialog = new DialogGUIHorizontalLayout();
             setDialog.AddChild(new DialogGUILabel(false, () => { return title; }, labelWidth));
-            setDialog.AddChild(new DialogGUIButton("-", () => { increment(-incAmount); }, false));
+            setDialog.AddChild(new DialogGUIButton("-", () => { increment(-incSize()); }, false));
             setDialog.AddChild(new DialogGUITextInput(currentValue(), false, 10, processor, currentValue, TMP_InputField.ContentType.DecimalNumber));
-            setDialog.AddChild(new DialogGUIButton("+", () => { increment(incAmount); }, false));
+            setDialog.AddChild(new DialogGUIButton("+", () => { increment(incSize()); }, false));
             return setDialog;
         }
 
