@@ -9,6 +9,7 @@ namespace VisualWingConfigurator
     class WingWindow : MonoBehaviour
     {
         private Part currentPart;
+
         private PopupDialog window;
 
         WingStats main = new WingStats();
@@ -22,6 +23,16 @@ namespace VisualWingConfigurator
         private Vector3 debugRootTrailHit;
         private Vector3 debugTipLeadHit;
         private Vector3 debugTipTrailHit;
+
+        private readonly Vector2 margins = new Vector2(30f, 30f);
+
+        public string CurrentPartName
+        {
+            get
+            {
+                return currentPart ? currentPart.name : "No part selected";
+            }
+        }
 
         private static string Clipboard
         {
@@ -64,7 +75,7 @@ namespace VisualWingConfigurator
         {
             if (currentPart && window)
             {
-                DrawLines(currentPart);
+                DrawLines(currentPart, main);
                 if(showHits)
                 {
                     DrawTools.DrawPoint(debugRootLeadHit, Color.red);
@@ -85,7 +96,7 @@ namespace VisualWingConfigurator
             var status = new DialogGUIVerticalLayout();
             dialogs.Add(status);
             status.AddChild(DisplayStatDialog(labelWidth, "Highlighted Part: ", () => { return Mouse.HoveredPart ? Mouse.HoveredPart.name : "No part highlighted"; }));
-            status.AddChild(DisplayStatDialog(labelWidth, "Selected Part: ", () => { return currentPart ? currentPart.name : "No part selected"; }));
+            status.AddChild(DisplayStatDialog(labelWidth, "Selected Part: ", () => { return CurrentPartName; }));
 
             // Change increment amount
             dialogs.Add(SetFloatDialog(labelWidth, "Increment Amount: ", () => { return Format(deltaSize); },
@@ -94,7 +105,7 @@ namespace VisualWingConfigurator
 
             dialogs.Add(new DialogGUISpace(5f));
 
-            dialogs.Add(DrawMainSettings(labelWidth));
+            dialogs.Add(DrawWingSettings(labelWidth, main));
 
             dialogs.Add(new DialogGUISpace(5f));
 
@@ -131,55 +142,67 @@ namespace VisualWingConfigurator
             dialogs.Add(new DialogGUISpace(5f));
 
             return PopupDialog.SpawnPopupDialog(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                new MultiOptionDialog("", "", "", HighLogic.UISkin, new Rect(0.75f, 0.5f, dimensions.x, dimensions.y), dialogs.ToArray()),
+                new MultiOptionDialog("main", "", "", HighLogic.UISkin, new Rect(0.75f, 0.5f, dimensions.x, dimensions.y), dialogs.ToArray()),
                 false, UISkinManager.defaultSkin, false);
         }
 
-        private DialogGUIVerticalLayout DrawMainSettings(float labelWidth)
+        private DialogGUIVerticalLayout DrawWingSettings(float labelWidth, WingStats wing, bool alwaysOn = true, Func<bool> isOn = null)
         {
             var settings = new DialogGUIVerticalLayout();
 
             // Vertical and root settings
-            settings.AddChild(SetFloatDialog(labelWidth, "Vertical Offset: ", () => { return Format(main.ZOffset); },
-                (string input) => { return ProcessTextToFloat(input, main.ZOffset, (float s) => { main.ZOffset = s; }); },
-                () => { return deltaSize; }, (float change) => { main.ZOffset += change; }));
-            settings.AddChild(SetFloatDialog(labelWidth, "Length of Root Chord: ", () => { return Format(main.rootChordLength); },
-                (string input) => { return ProcessTextToFloat(input, ref main.rootChordLength); },
-                () => { return deltaSize; }, (float change) => { main.rootChordLength += change; }));
-            settings.AddChild(SetFloatDialog(labelWidth, "Offset of Root Midpoint - X (Right+)", () => { return Format(main.rootMidChordOffset.x); },
-                (string input) => { return ProcessTextToFloat(input, ref main.rootMidChordOffset.x); },
-                () => { return deltaSize; }, (float change) => { main.rootMidChordOffset.x += change; }));
-            settings.AddChild(SetFloatDialog(labelWidth, "Offset of Root Midpoint - Y (Forward+)", () => { return Format(main.rootMidChordOffset.y); },
-                (string input) => { return ProcessTextToFloat(input, ref main.rootMidChordOffset.y); },
-                () => { return deltaSize; }, (float change) => { main.rootMidChordOffset.y += change; }));
+            settings.AddChild(SetFloatDialog(labelWidth, "Vertical Offset: ", () => { return Format(wing.ZOffset); },
+                (string input) => { return ProcessTextToFloat(input, wing.ZOffset, (float s) => { wing.ZOffset = s; }); },
+                () => { return deltaSize; }, (float change) => { wing.ZOffset += change; }));
+            settings.AddChild(SetFloatDialog(labelWidth, "Length of Root Chord: ", () => { return Format(wing.rootChordLength); },
+                (string input) => { return ProcessTextToFloat(input, ref wing.rootChordLength); },
+                () => { return deltaSize; }, (float change) => { wing.rootChordLength += change; }));
+            settings.AddChild(SetFloatDialog(labelWidth, "Offset of Root Midpoint - X (Right+)", () => { return Format(wing.rootMidChordOffset.x); },
+                (string input) => { return ProcessTextToFloat(input, ref wing.rootMidChordOffset.x); },
+                () => { return deltaSize; }, (float change) => { wing.rootMidChordOffset.x += change; }));
+            settings.AddChild(SetFloatDialog(labelWidth, "Offset of Root Midpoint - Y (Forward+)", () => { return Format(wing.rootMidChordOffset.y); },
+                (string input) => { return ProcessTextToFloat(input, ref wing.rootMidChordOffset.y); },
+                () => { return deltaSize; }, (float change) => { wing.rootMidChordOffset.y += change; }));
 
             settings.AddChild(new DialogGUISpace(5f));
 
             // Tip settings
-            settings.AddChild(SetFloatDialog(labelWidth, "Length of Tip Chord: ", () => { return Format(main.tipChordLength); },
-                (string input) => { return ProcessTextToFloat(input, ref main.tipChordLength); },
-                () => { return deltaSize; }, (float change) => { main.tipChordLength += change; }));
-            settings.AddChild(SetFloatDialog(labelWidth, "Offset of Tip Midpoint - X (Right+)", () => { return Format(main.tipMidChordOffset.x); },
-                (string input) => { return ProcessTextToFloat(input, ref main.tipMidChordOffset.x); },
-                () => { return deltaSize; }, (float change) => { main.tipMidChordOffset.x += change; }));
-            settings.AddChild(SetFloatDialog(labelWidth, "Offset of Tip Midpoint - Y (Forward+)", () => { return Format(main.tipMidChordOffset.y); },
-                (string input) => { return ProcessTextToFloat(input, ref main.tipMidChordOffset.y); },
-                () => { return deltaSize; }, (float change) => { main.tipMidChordOffset.y += change; }));
+            settings.AddChild(SetFloatDialog(labelWidth, "Length of Tip Chord: ", () => { return Format(wing.tipChordLength); },
+                (string input) => { return ProcessTextToFloat(input, ref wing.tipChordLength); },
+                () => { return deltaSize; }, (float change) => { wing.tipChordLength += change; }));
+            settings.AddChild(SetFloatDialog(labelWidth, "Offset of Tip Midpoint - X (Right+)", () => { return Format(wing.tipMidChordOffset.x); },
+                (string input) => { return ProcessTextToFloat(input, ref wing.tipMidChordOffset.x); },
+                () => { return deltaSize; }, (float change) => { wing.tipMidChordOffset.x += change; }));
+            settings.AddChild(SetFloatDialog(labelWidth, "Offset of Tip Midpoint - Y (Forward+)", () => { return Format(wing.tipMidChordOffset.y); },
+                (string input) => { return ProcessTextToFloat(input, ref wing.tipMidChordOffset.y); },
+                () => { return deltaSize; }, (float change) => { wing.tipMidChordOffset.y += change; }));
+
+            if(!alwaysOn)
+                foreach(DialogGUIBase dialog in settings.children)
+                    settings.OptionEnabledCondition = isOn;
 
             return settings;
         }
 
-        private void DrawLines(Part draw)
+        private void DrawLines(Part draw, WingStats wing)
         {
-            Vector3 leadRoot = draw.transform.position + draw.transform.TransformDirection(main.rootMidChordOffset + Vector3.up * main.rootChordLength / 2);
-            Vector3 trailRoot = draw.transform.position + draw.transform.TransformDirection(main.rootMidChordOffset - Vector3.up * main.rootChordLength / 2);
+            Vector3 leadRoot = draw.transform.position + draw.transform.TransformDirection(wing.rootMidChordOffset + Vector3.up * wing.rootChordLength / 2);
+            Vector3 trailRoot = draw.transform.position + draw.transform.TransformDirection(wing.rootMidChordOffset - Vector3.up * wing.rootChordLength / 2);
 
-            Vector3 leadTip = draw.transform.position + draw.transform.TransformDirection(main.tipMidChordOffset + Vector3.up * main.tipChordLength / 2);
-            Vector3 trailTip = draw.transform.position + draw.transform.TransformDirection(main.tipMidChordOffset - Vector3.up * main.tipChordLength / 2);
+            Vector3 leadTip = draw.transform.position + draw.transform.TransformDirection(wing.tipMidChordOffset + Vector3.up * wing.tipChordLength / 2);
+            Vector3 trailTip = draw.transform.position + draw.transform.TransformDirection(wing.tipMidChordOffset - Vector3.up * wing.tipChordLength / 2);
 
             DrawTools.DrawLine(leadRoot, trailRoot, Color.magenta);
             DrawTools.DrawLine(leadTip, trailTip, Color.magenta);
             DrawTools.DrawTransform(draw.transform, 0.25f);
+        }
+
+        private DialogGUIBase DisplayStatDialog(float labelWidth, string title, System.Func<string> display)
+        {
+            var horizontal = new DialogGUIHorizontalLayout();
+            horizontal.AddChild(new DialogGUILabel(false, () => { return title; }, labelWidth));
+            horizontal.AddChild(new DialogGUILabel(display));
+            return horizontal;
         }
 
         private DialogGUIBase SetFloatDialog(float labelWidth, string title, Func<string> currentValue,
@@ -212,14 +235,6 @@ namespace VisualWingConfigurator
             {
                 return Format(previous);
             }
-        }
-
-        private DialogGUIBase DisplayStatDialog(float labelWidth, string title, System.Func<string> display)
-        {
-            var horizontal = new DialogGUIHorizontalLayout();
-            horizontal.AddChild(new DialogGUILabel(false, () => { return title; }, labelWidth));
-            horizontal.AddChild(new DialogGUILabel(display));
-            return horizontal;
         }
 
         private string Format(float number)
