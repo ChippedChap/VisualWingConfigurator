@@ -280,8 +280,15 @@ namespace VisualWingConfigurator
                 ScreenMessages.PostScreenMessage("No part selected.");
                 return;
             }
-            // Switch colliders to different layer
+            // Switch colliders to different layer and remember their previous layers.
             currentPart.collider.gameObject.layer = 30;
+            Collider[] partColliders = currentPart.GetPartColliders();
+            int[] layers = new int[partColliders.Length];
+            for (int i = 0; i < partColliders.Length; i++)
+            {
+                layers[i] = partColliders[i].gameObject.layer;
+                partColliders[i].gameObject.layer = 30;
+            }
             // Root lengths
             Vector3 leadRootOrigin = currentPart.transform.TransformPoint(main.rootMidChordOffset + Vector3.up * rayDistance);
             Vector3 trailRootOrigin = currentPart.transform.TransformPoint(main.rootMidChordOffset - Vector3.up * rayDistance);
@@ -314,8 +321,8 @@ namespace VisualWingConfigurator
                 ScreenMessages.PostScreenMessage("No tip detected.");
                 debugTipLeadHit = debugTipTrailHit = Vector3.zero;
             }
-            // Switch back
-            currentPart.collider.gameObject.layer = 0;
+            // Switch back layers
+            for (int i = 0; i < partColliders.Length; i++) partColliders[i].gameObject.layer = layers[i];
         }
     }
 }
