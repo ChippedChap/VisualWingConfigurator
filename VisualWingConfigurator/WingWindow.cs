@@ -76,7 +76,7 @@ namespace VisualWingConfigurator
             if (currentPart && window)
             {
                 DrawLines(currentPart, main, Color.magenta);
-                if(controlSurface) DrawLines(currentPart, srf, Color.cyan);
+                if(controlSurface) DrawLines(currentPart, srf, Color.cyan, false);
                 if(showHits)
                 {
                     DrawTools.DrawPoint(debugRootLeadHit, Color.red);
@@ -185,7 +185,7 @@ namespace VisualWingConfigurator
             return settings;
         }
 
-        private void DrawLines(Part draw, WingStats wing, Color color)
+        private void DrawLines(Part draw, WingStats wing, Color color, bool drawTransform = true)
         {
             Vector3 leadRoot = draw.transform.position + draw.transform.TransformDirection(wing.rootMidChordOffset + Vector3.up * wing.rootChordLength / 2);
             Vector3 trailRoot = draw.transform.position + draw.transform.TransformDirection(wing.rootMidChordOffset - Vector3.up * wing.rootChordLength / 2);
@@ -195,7 +195,7 @@ namespace VisualWingConfigurator
 
             DrawTools.DrawLine(leadRoot, trailRoot, color);
             DrawTools.DrawLine(leadTip, trailTip, color);
-            DrawTools.DrawTransform(draw.transform, 0.25f);
+            if(drawTransform) DrawTools.DrawTransform(draw.transform, 0.25f);
         }
 
         private DialogGUIBase DisplayStatDialog(float labelWidth, string title, System.Func<string> display)
@@ -255,8 +255,11 @@ namespace VisualWingConfigurator
             patch.AddValue("@maximum_drag", 0);
             patch.AddValue("@minimum_drag", 0);
             patch.AddValue("@angularDrag", 0);
-            patch.AddNode("!MODULE[" + (controlSurface ? "ModuleControlSurface" : "ModuleLiftingSurface") + "]");
 
+            patch.AddNode("!MODULE[ModuleLiftingSurface]");
+            patch.AddNode("!MODULE[ModuleControlSurface]");
+            patch.AddNode("!MODULE[ModuleAeroSurface]");
+            
             patch.AddNode("%MODULE[" + (controlSurface ? "FARControllableSurface" : "FARWingAerodynamicModel") + "]");
             var farModule = patch.GetNode("%MODULE[" + (controlSurface ? "FARControllableSurface" : "FARWingAerodynamicModel") + "]");
             farModule.AddValue("%b_2", main.B_2);
