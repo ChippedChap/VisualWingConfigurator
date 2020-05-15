@@ -12,8 +12,8 @@ namespace VisualWingConfigurator
 
         private PopupDialog window;
 
-        WingStats main = new WingStats();
-        WingStats srf = new WingStats();
+        private readonly WingStats main = new WingStats();
+        private readonly WingStats srf = new WingStats(0.5f);
 
         private float deltaSize = 0.1f;
         private bool showHits = false;
@@ -75,7 +75,8 @@ namespace VisualWingConfigurator
         {
             if (currentPart && window)
             {
-                DrawLines(currentPart, main);
+                DrawLines(currentPart, main, Color.magenta);
+                if(controlSurface) DrawLines(currentPart, srf, Color.cyan);
                 if(showHits)
                 {
                     DrawTools.DrawPoint(debugRootLeadHit, Color.red);
@@ -89,7 +90,7 @@ namespace VisualWingConfigurator
         private PopupDialog BuildWindow()
         {
             Debug.Log("[VisualWingConfigurator] Creating window");
-            Vector2 dimensions = new Vector2(420f, 500f);
+            Vector2 dimensions = new Vector2(420f, 600f);
             float labelWidth = dimensions.x / 2;
             var dialogs = new List<DialogGUIBase>();
 
@@ -101,12 +102,10 @@ namespace VisualWingConfigurator
             // Change increment amount
             dialogs.Add(SetFloatDialog(labelWidth, "Increment Amount: ", () => { return Format(deltaSize); },
                 (string input) => { return ProcessTextToFloat(input, ref deltaSize); },
-                () => { return 10f; }, (float change) => { deltaSize *= (change > 0) ? change : -1/change; }));
+                () => { return 10f; }, (float change) => { deltaSize *= (change > 0) ? change : -1 / change; }));
 
             dialogs.Add(new DialogGUISpace(5f));
-
             dialogs.Add(DrawWingSettings(labelWidth, main));
-
             dialogs.Add(new DialogGUISpace(5f));
 
             var results = new DialogGUIVerticalLayout();
@@ -115,8 +114,17 @@ namespace VisualWingConfigurator
             results.AddChild(DisplayStatDialog(labelWidth, "MAC", () => { return Format(main.MAC); }));
             results.AddChild(DisplayStatDialog(labelWidth, "TaperRatio", () => { return Format(main.TaperRatio); }));
             results.AddChild(DisplayStatDialog(labelWidth, "MidChordSweep", () => { return Format(main.MidChordSweep); }));
-            results.AddChild(DisplayStatDialog(labelWidth, "(Sweep of Lead, Trail", () => { return Format(main.LeadSweep) + ", " + Format(main.TrailSweep) + ")"; }));
             results.AddChild(DisplayStatDialog(labelWidth, "rootMidChordOffsetFromOrig", () => { return main.rootMidChordOffset.ToString("0.000"); }));
+
+            dialogs.Add(new DialogGUISpace(5f));
+
+            // Control surface settings - should only show up if controlSurface is true.
+            var srfControl = new DialogGUIFlexibleSpace();
+            srfControl.OptionEnabledCondition = () => { return controlSurface; };
+            dialogs.Add(srfControl);
+            srfControl.AddChild(DrawWingSettings(labelWidth, srf));
+            srfControl.AddChild(new DialogGUISpace(5f));
+            srfControl.AddChild(DisplayStatDialog(labelWidth, "ctrlSurfFrac", () => { return Format(srf.Area / main.Area); }));
 
             var copyconfig = new DialogGUIHorizontalLayout();
             dialogs.Add(copyconfig);
@@ -130,16 +138,9 @@ namespace VisualWingConfigurator
 
             dialogs.Add(new DialogGUIButton("Reset", () => 
             {
-                main = new WingStats(); 
-                srf = new WingStats() 
-                {
-                    tipMidChordOffset = Vector3.left * 0.1f,
-                    rootChordLength = 0.1f, 
-                    tipChordLength = 0.1f
-                }; 
+                main.Reset(1f);
+                srf.Reset(0.5f);
             }, labelWidth, -1f, false));
-
-            dialogs.Add(new DialogGUISpace(5f));
 
             return PopupDialog.SpawnPopupDialog(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
                 new MultiOptionDialog("main", "", "", HighLogic.UISkin, new Rect(0.75f, 0.5f, dimensions.x, dimensions.y), dialogs.ToArray()),
@@ -184,7 +185,7 @@ namespace VisualWingConfigurator
             return settings;
         }
 
-        private void DrawLines(Part draw, WingStats wing)
+        private void DrawLines(Part draw, WingStats wing, Color color)
         {
             Vector3 leadRoot = draw.transform.position + draw.transform.TransformDirection(wing.rootMidChordOffset + Vector3.up * wing.rootChordLength / 2);
             Vector3 trailRoot = draw.transform.position + draw.transform.TransformDirection(wing.rootMidChordOffset - Vector3.up * wing.rootChordLength / 2);
@@ -192,8 +193,8 @@ namespace VisualWingConfigurator
             Vector3 leadTip = draw.transform.position + draw.transform.TransformDirection(wing.tipMidChordOffset + Vector3.up * wing.tipChordLength / 2);
             Vector3 trailTip = draw.transform.position + draw.transform.TransformDirection(wing.tipMidChordOffset - Vector3.up * wing.tipChordLength / 2);
 
-            DrawTools.DrawLine(leadRoot, trailRoot, Color.magenta);
-            DrawTools.DrawLine(leadTip, trailTip, Color.magenta);
+            DrawTools.DrawLine(leadRoot, trailRoot, color);
+            DrawTools.DrawLine(leadTip, trailTip, color);
             DrawTools.DrawTransform(draw.transform, 0.25f);
         }
 
@@ -266,7 +267,7 @@ namespace VisualWingConfigurator
             {
                 farModule.AddValue("%nonSideAttach", 1);
                 farModule.AddValue("%maxDeflect", 20);
-                farModule.AddValue("%ctrlSurfFrac", 1);
+                farModule.AddValue("%ctrlSurfFrac", srf.Area / main.Area);
                 farModule.AddValue("%transformName", "", "This needs to be filled manually. Using sarbian's DebugStuff is advised.");
             }
             return patch.ToString();

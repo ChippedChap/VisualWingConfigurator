@@ -76,5 +76,26 @@ namespace VisualWingConfigurator
             }
         }
         #endregion
+
+        public WingStats(float scale)
+        {
+            rootMidChordOffset *= scale;
+            tipMidChordOffset *= scale;
+            rootChordLength *= scale;
+            tipChordLength *= scale;
+        }
+
+        public WingStats()
+        {
+
+        }
+
+        public void Reset(float scale)
+        {
+            rootMidChordOffset = Vector3.zero;
+            tipMidChordOffset = Vector3.left * scale;
+            rootChordLength = scale;
+            tipChordLength = scale;
+        }
     }
 }
